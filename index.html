@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная страница</title>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .nav-item {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Добро пожаловать в HRNS</h1>
+    <p>Выберите нужный раздел:</p>
+
+    <div class="nav-grid">
+        <a href="/upload" class="nav-item">
+            <h3>Отправка уведомлений</h3>
+            <p>...</p>
+        </a>
+
+        <a href="/delayed" class="nav-item">
+            <h3>Запланированные отправки</h3>
+            <p>...</p>
+        </a>
+
+        <a href="/search" class="nav-item">
+            <h3>Поиск по пользователю</h3>
+            <p>...</p>
+        </a>
+    </div>
+
+</div>
+</body>
+</html>
