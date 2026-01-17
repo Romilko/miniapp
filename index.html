@@ -289,16 +289,16 @@
             </button>
         </div>
 
-        <!-- <div class="name-list-section">
-            <div class="name-list-title">
-                <i class="fas fa-list"></i> Имена в списке:
-            </div>
-            <div class="name-list-container">
-                <div class="name-list" id="nameList">
-                    <!-- Имена будут добавлены через JavaScript -->
-                </div>
-            </div>
-        </div> -->
+        {!<div class="name-list-section">!}
+            {!<div class="name-list-title">!}
+                {!<i class="fas fa-list"></i> Имена в списке:!}
+            {!</div>!}
+            {!<div class="name-list-container">!}
+                {!<div class="name-list" id="nameList">!}
+                    {!<!-- Имена будут добавлены через JavaScript -->!}
+                {!</div>!}
+            {!</div>!}
+        {!</div>!}
     </div>
 
     <div class="footer">
@@ -360,12 +360,12 @@
     function showResult(isFound) {
         if (isFound) {
             modalIcon.innerHTML = '<i class="fas fa-rainbow"></i>';
-            modalTitle.textContent = 'Результат найден!';
-            modalText.textContent = 'Вы гей';
+            modalTitle.textContent = 'Поздравляем, вы в списке!';
+            modalText.textContent = 'И вы гей =)';
         } else {
             modalIcon.innerHTML = '<i class="fas fa-user-slash"></i>';
-            modalTitle.textContent = 'Результат найден!';
-            modalText.textContent = 'Вы пидар';
+            modalTitle.textContent = 'К сожалению вас не нашли!';
+            modalText.textContent = 'И вы пидар =(';
         }
 
         modalOverlay.classList.add('active');
