@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обучение — карточки слов</title>
+    <link rel="stylesheet" href="css/styles.css?v=2">
+    <script defer src="js/data.js?v=2"></script>
+    <script defer src="js/train.js?v=2"></script>
+</head>
+<body>
+
+<div class="training-shell">
+
+    <div id="training-view" hidden>
+        <div class="training-topbar">
+            <div class="training-topbar__left">
+                <a class="back-link" href="index.html">← ко всем блокам</a>
+                <h1 class="block-heading" id="block-title">Блок</h1>
+                <span class="block-subheading" id="block-range"></span>
+            </div>
+            <label class="switch-row">
+                <input type="checkbox" id="shuffle-toggle">
+                Вразброс
+            </label>
+        </div>
+
+        <div class="progress-track">
+            <div class="progress-fill progress-fill--know" id="progress-know"></div>
+            <div class="progress-fill progress-fill--learn" id="progress-learn"></div>
+        </div>
+        <div class="progress-label" id="progress-label">Знаю 0 из 0</div>
+
+        <div class="card-scene">
+            <div class="card" id="card" title="Нажмите, чтобы перевернуть карточку">
+                <div class="card-face card-face--front">
+                    <div class="card-face__word" id="card-word"></div>
+                    <div class="card-face__hint">нажмите на карточку или пробел, чтобы увидеть перевод</div>
+                </div>
+                <div class="card-face card-face--back">
+                    <div class="card-face__word-small" id="card-back-word"></div>
+                    <div class="card-face__translation" id="card-translation"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="round-label" id="round-label"></div>
+
+        <div class="answer-buttons">
+            <button type="button" class="answer-button answer-button--learn" id="btn-learn">Учу</button>
+            <button type="button" class="answer-button answer-button--know" id="btn-know">Знаю</button>
+        </div>
+    </div>
+
+    <div id="round-end-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">🔁</div>
+        <h2 class="interstitial__title">Раунд завершён</h2>
+        <p class="interstitial__text" id="round-remaining"></p>
+        <div class="interstitial__actions">
+            <button type="button" class="primary-button" id="btn-continue">Продолжить</button>
+            <a class="secondary-button" href="index.html">К списку блоков</a>
+        </div>
+    </div>
+
+    <div id="finish-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">🎉</div>
+        <h2 class="interstitial__title">Блок выучен!</h2>
+        <p class="interstitial__text" id="finish-stats"></p>
+        <div class="interstitial__actions">
+            <button type="button" class="primary-button" id="btn-restart">Начать заново</button>
+            <button type="button" class="secondary-button" id="btn-back-to-blocks">К списку блоков</button>
+        </div>
+    </div>
+
+    <div id="error-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">⚠️</div>
+        <h2 class="interstitial__title">Что-то пошло не так</h2>
+        <p class="interstitial__text" id="error-text"></p>
+        <div class="interstitial__actions">
+            <a class="primary-button" href="index.html">К списку блоков</a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
