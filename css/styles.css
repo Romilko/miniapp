@@ -1,0 +1,450 @@
+:root {
+    --bg: #101318;
+    --bg-elevated: #171b23;
+    --card-bg: #1c212b;
+    --card-bg-back: #202734;
+    --border: #2a3140;
+    --text: #e7eaf1;
+    --text-dim: #9aa3b5;
+    --accent: #5b8cff;
+    --red: #e5484d;
+    --red-hover: #d93c42;
+    --green: #2fa36b;
+    --green-hover: #288f5f;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--accent);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+}
+
+/* ---------- Главная страница ---------- */
+
+.page-header {
+    margin-bottom: 28px;
+}
+
+.page-header h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+}
+
+.page-header p {
+    margin: 0;
+    color: var(--text-dim);
+}
+
+.blocks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 12px;
+}
+
+.block-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.block-card:hover,
+.block-card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.block-card__title {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.block-card__range {
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.block-card__count {
+    margin-top: 6px;
+    align-self: flex-start;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(91, 140, 255, 0.12);
+    border-radius: 999px;
+    padding: 1px 10px;
+}
+
+.loading,
+.error-box {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-dim);
+}
+
+.error-box {
+    color: var(--red);
+}
+
+/* ---------- Страница обучения ---------- */
+
+.training-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 100vh;
+}
+
+.training-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.training-topbar__left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.back-link {
+    font-size: 14px;
+    color: var(--text-dim);
+    text-decoration: none;
+}
+
+.back-link:hover {
+    color: var(--accent);
+}
+
+.block-heading {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 2px 0 0;
+}
+
+.block-subheading {
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.switch-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+.switch-row input {
+    appearance: none;
+    position: relative;
+    width: 44px;
+    height: 24px;
+    margin: 0;
+    border-radius: 999px;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.switch-row input::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    transition: transform 0.2s;
+}
+
+.switch-row input:checked {
+    background: var(--accent);
+}
+
+.switch-row input:checked::before {
+    transform: translateX(20px);
+}
+
+.switch-row input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.progress-track {
+    display: flex;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    flex-shrink: 0;
+    transition: width 0.3s;
+}
+
+.progress-fill--know {
+    background: linear-gradient(90deg, var(--green), #52c58c);
+}
+
+.progress-fill--learn {
+    background: var(--red);
+}
+
+.progress-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: right;
+    margin-top: 2px;
+}
+
+.progress-label__learn {
+    color: var(--red);
+}
+
+.card-scene {
+    perspective: 1400px;
+    margin-top: 4px;
+}
+
+.card {
+    position: relative;
+    width: 100%;
+    height: clamp(260px, 44vh, 380px);
+    transform-style: preserve-3d;
+    transition: transform 0.45s;
+    cursor: pointer;
+}
+
+.card--flipped {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 24px 52px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    text-align: center;
+}
+
+.card-face--front {
+    background: var(--card-bg);
+}
+
+.card-face--back {
+    background: var(--card-bg-back);
+    transform: rotateY(180deg);
+}
+
+.card-face__word {
+    font-size: clamp(22px, 4.5vw, 34px);
+    font-weight: 600;
+    line-height: 1.25;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.card-face__word-small {
+    font-size: 15px;
+    color: var(--text-dim);
+    overflow-wrap: anywhere;
+}
+
+.card-face__translation {
+    font-size: clamp(17px, 3vw, 24px);
+    line-height: 1.35;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.card-face__hint {
+    position: absolute;
+    bottom: 14px;
+    left: 0;
+    right: 0;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.round-label {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.answer-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.answer-button {
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.answer-button:hover {
+    transform: translateY(-1px);
+}
+
+.answer-button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.answer-button--learn {
+    background: var(--red);
+}
+
+.answer-button--learn:hover {
+    background: var(--red-hover);
+}
+
+.answer-button--know {
+    background: var(--green);
+}
+
+.answer-button--know:hover {
+    background: var(--green-hover);
+}
+
+/* ---------- Межэкраны (конец раунда, блок выучен, ошибка) ---------- */
+
+.interstitial {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 40px 16px;
+}
+
+.interstitial__emoji {
+    font-size: 52px;
+}
+
+.interstitial__title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.interstitial__text {
+    color: var(--text-dim);
+    margin: 0;
+    max-width: 420px;
+}
+
+.interstitial__actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.primary-button {
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.primary-button:hover {
+    background: #4a7ce8;
+}
+
+.secondary-button {
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.secondary-button:hover {
+    border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+    .answer-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .training-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
