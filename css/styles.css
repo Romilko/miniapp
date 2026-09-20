@@ -122,11 +122,19 @@ a {
 .training-shell {
     max-width: 720px;
     margin: 0 auto;
-    padding: 24px 16px 48px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+}
+
+#training-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .training-topbar {
@@ -134,7 +142,7 @@ a {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 .training-topbar__left {
@@ -215,6 +223,7 @@ a {
 .progress-track {
     display: flex;
     height: 8px;
+    flex-shrink: 0;
     border-radius: 999px;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
@@ -250,12 +259,17 @@ a {
 .card-scene {
     perspective: 1400px;
     margin-top: 4px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .card {
     position: relative;
     width: 100%;
-    height: clamp(260px, 44vh, 380px);
+    flex: 1;
+    min-height: 0;
     transform-style: preserve-3d;
     transition: transform 0.45s;
     cursor: pointer;
@@ -324,12 +338,14 @@ a {
     text-align: center;
     font-size: 13px;
     color: var(--text-dim);
+    flex-shrink: 0;
 }
 
 .answer-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+    flex-shrink: 0;
 }
 
 .answer-button {
@@ -436,15 +452,4 @@ a {
 
 .secondary-button:hover {
     border-color: var(--accent);
-}
-
-@media (max-width: 480px) {
-    .answer-buttons {
-        grid-template-columns: 1fr;
-    }
-
-    .training-topbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
 }
