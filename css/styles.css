@@ -128,6 +128,7 @@ a {
     gap: 16px;
     height: 100vh;
     height: 100dvh;
+    touch-action: none;
 }
 
 #training-view {
@@ -222,6 +223,7 @@ a {
 
 .progress-track {
     display: flex;
+    gap: 1px;
     height: 8px;
     flex-shrink: 0;
     border-radius: 999px;
@@ -230,18 +232,17 @@ a {
     overflow: hidden;
 }
 
-.progress-fill {
-    height: 100%;
-    width: 0;
-    flex-shrink: 0;
-    transition: width 0.3s;
+.progress-segment {
+    flex: 1 1 0;
+    min-width: 2px;
+    border-radius: 1px;
 }
 
-.progress-fill--know {
-    background: linear-gradient(90deg, var(--green), #52c58c);
+.progress-segment--know {
+    background: linear-gradient(180deg, var(--green), #52c58c);
 }
 
-.progress-fill--learn {
+.progress-segment--learn {
     background: var(--red);
 }
 

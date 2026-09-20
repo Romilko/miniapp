@@ -7,8 +7,7 @@
 
     const blockTitle = document.getElementById('block-title');
     const blockRange = document.getElementById('block-range');
-    const progressFill = document.getElementById('progress-know');
-    const progressLearnFill = document.getElementById('progress-learn');
+    const progressTrack = document.getElementById('progress-track');
     const progressLabel = document.getElementById('progress-label');
     const shuffleToggle = document.getElementById('shuffle-toggle');
     const card = document.getElementById('card');
@@ -37,6 +36,7 @@
     let learning = new Set();
     let shuffle = false;
     let round = 1;
+    let answers = [];
 
     function showView(view) {
         for (const candidate of [trainingView, roundEndView, finishView, errorView]) {
@@ -63,6 +63,7 @@
     function startRound() {
         buildQueue();
         position = 0;
+        answers = [];
         renderCard();
         renderProgress();
     }
@@ -84,12 +85,21 @@
         card.classList.toggle('card--flipped');
     }
 
+    // Шкала прогресса: один сегмент на карточку раунда, окрашивается в порядке ответов.
     function renderProgress() {
         const total = block.words.length;
         progressLabel.textContent = 'Знаю ' + known.size + ' из ' + total +
             (learning.size > 0 ? ' · учу ' + learning.size : '');
-        progressFill.style.width = total === 0 ? '0%' : (known.size / total * 100) + '%';
-        progressLearnFill.style.width = total === 0 ? '0%' : (learning.size / total * 100) + '%';
+        progressTrack.replaceChildren();
+        const totalSegments = Math.max(queue.length, answers.length);
+        for (let index = 0; index < totalSegments; index += 1) {
+            const segment = document.createElement('div');
+            segment.className = 'progress-segment';
+            if (index < answers.length) {
+                segment.classList.add(answers[index] ? 'progress-segment--know' : 'progress-segment--learn');
+            }
+            progressTrack.appendChild(segment);
+        }
     }
 
     function answer(isKnown) {
@@ -99,6 +109,7 @@
         } else {
             learning.add(queue[position]);
         }
+        answers.push(isKnown);
         position += 1;
         renderProgress();
         if (position >= queue.length) {
