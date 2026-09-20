@@ -2,11 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Обучение — карточки слов</title>
-    <link rel="stylesheet" href="css/styles.css?v=3">
+    <link rel="stylesheet" href="css/styles.css?v=4">
     <script defer src="js/data.js?v=2"></script>
-    <script defer src="js/train.js?v=2"></script>
+    <script defer src="js/train.js?v=3"></script>
 </head>
 <body>
 
@@ -25,10 +25,7 @@
             </label>
         </div>
 
-        <div class="progress-track">
-            <div class="progress-fill progress-fill--know" id="progress-know"></div>
-            <div class="progress-fill progress-fill--learn" id="progress-learn"></div>
-        </div>
+        <div class="progress-track" id="progress-track"></div>
         <div class="progress-label" id="progress-label">Знаю 0 из 0</div>
 
         <div class="card-scene">
