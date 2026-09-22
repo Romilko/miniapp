@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Обучение — карточки слов</title>
-    <link rel="stylesheet" href="css/styles.css?v=8">
-    <script defer src="js/data.js?v=2"></script>
-    <script defer src="js/train.js?v=7"></script>
+    <link rel="stylesheet" href="css/styles.css?v=10">
+    <script defer src="js/data.js?v=3"></script>
+    <script defer src="js/train.js?v=8"></script>
 </head>
 <body>
 
@@ -26,7 +26,7 @@
                 <div class="mode-menu__dropdown" id="mode-menu-dropdown" hidden>
                     <label class="switch-row">
                         <input type="checkbox" id="shuffle-toggle">
-                        <span id="shuffle-label">по алфавиту</span>
+                        <span id="shuffle-label">по порядку</span>
                     </label>
                     <label class="switch-row">
                         <input type="checkbox" id="front-side-toggle">
@@ -40,10 +40,11 @@
         <div class="progress-label" id="progress-label">Знаю 0 из 0</div>
 
         <div class="card-scene">
-            <div class="card" id="card" title="Нажмите, чтобы перевернуть карточку">
+            <div class="card" id="card">
                 <div class="card-face card-face--front">
                     <div class="card-face__word" id="card-word"></div>
-                    <div class="card-face__hint">нажмите на карточку или пробел, чтобы увидеть перевод</div>
+                    <button type="button" class="info-button" id="btn-info"
+                            aria-label="Описание слова" title="Описание слова" hidden>i</button>
                 </div>
                 <div class="card-face card-face--back">
                     <div class="card-face__word-small" id="card-back-word"></div>
@@ -52,9 +53,8 @@
             </div>
             <button type="button" class="prev-button" id="btn-prev"
                     aria-label="Предыдущая карточка" title="Предыдущая карточка" disabled>←</button>
+            <div class="definition-popup" id="definition-popup" hidden></div>
         </div>
-
-        <div class="round-label" id="round-label"></div>
 
         <div class="answer-buttons">
             <button type="button" class="answer-button answer-button--learn" id="btn-learn">Учу</button>

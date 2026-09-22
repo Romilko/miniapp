@@ -1,11 +1,12 @@
 // Загрузка и разбор encards_5500_random_ru.md в массив блоков со словами.
-// Формат файла: заголовки "## Блок N (слова X–Y)" и строки "M. **word** — перевод".
+// Формат файла: заголовки "## Блок N (слова X–Y)" и строки
+// "M. **word** — перевод — английское мини-описание" (третье поле может отсутствовать).
 
 const BLOCK_HEADER_PATTERN = /^## Блок (\d+) \(слова (\d+)\s*[–—-]\s*(\d+)\)$/;
-const ENTRY_PATTERN = /^\d+\.\s+\*\*(.+?)\*\*\s+[—–-]\s+(.+)$/;
+const ENTRY_PATTERN = /^\d+\.\s+\*\*(.+?)\*\*\s+[—–-]\s+(.+?)(?:\s+[—–-]\s+(.+))?$/;
 
 async function loadBlocks() {
-    const response = await fetch('encards_5500_random_ru.md');
+    const response = await fetch('encards_5500_random_ru.md?v=2');
     if (!response.ok) {
         throw new Error('HTTP ' + response.status);
     }
@@ -31,7 +32,8 @@ function parseBlocks(markdownText) {
         if (entryMatch && currentBlock) {
             currentBlock.words.push({
                 word: entryMatch[1].trim(),
-                translation: entryMatch[2].trim()
+                translation: entryMatch[2].trim(),
+                definition: entryMatch[3] ? entryMatch[3].trim() : ''
             });
         }
     }

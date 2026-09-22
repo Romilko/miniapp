@@ -314,6 +314,8 @@ a {
     position: relative;
     perspective: 1400px;
     margin-top: 4px;
+    /* отступ между карточкой и кнопками «Учу»/«Знаю» */
+    margin-bottom: 12px;
     flex: 1;
     min-height: 0;
     display: flex;
@@ -385,23 +387,6 @@ a {
     overflow-wrap: anywhere;
 }
 
-/* Левый край подсказки освобождён под кнопку «назад» в углу карточки */
-.card-face__hint {
-    position: absolute;
-    bottom: 14px;
-    left: 58px;
-    right: 0;
-    font-size: 12px;
-    color: var(--text-dim);
-}
-
-.round-label {
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-}
-
 /* Кнопка «назад» в нижнем левом углу карточки; лежит в сцене рядом
    с переворачивающейся карточкой, поэтому не вращается вместе с ней. */
 .prev-button {
@@ -435,6 +420,56 @@ a {
 .prev-button:disabled {
     opacity: 0.35;
     cursor: default;
+}
+
+/* Кнопка ⓘ с английским описанием слова в правом нижнем углу лицевой
+   стороны; прячется вместе с гранью при перевороте карточки. */
+.info-button {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 1;
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+    font-style: italic;
+    line-height: 1;
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--text-dim);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.info-button:hover,
+.info-button:focus-visible {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.info-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Окошко английского описания; лежит в сцене рядом с карточкой,
+   поэтому не вращается при перевороте. */
+.definition-popup {
+    position: absolute;
+    right: 12px;
+    bottom: 58px;
+    z-index: 2;
+    max-width: min(72%, 460px);
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 .answer-buttons {

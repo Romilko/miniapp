@@ -1,6 +1,7 @@
 // Страница обучения: карточки блока, кнопки «Учу»/«Знаю», раунды.
 // Порядок карточек и лицевая сторона — тумблеры в меню-шестерёнке,
-// переход назад (кнопка или свайп вправо) отменяет ответ по карточке.
+// переход назад (кнопка или свайп вправо) отменяет ответ по карточке,
+// английское описание слова — окошко по клику на ⓘ в углу карточки.
 // Весь прогресс — только в памяти этой страницы: любой уход или F5 сбрасывает его.
 
 (function () {
@@ -22,7 +23,8 @@
     const cardWord = document.getElementById('card-word');
     const cardBackWord = document.getElementById('card-back-word');
     const cardTranslation = document.getElementById('card-translation');
-    const roundLabel = document.getElementById('round-label');
+    const infoButton = document.getElementById('btn-info');
+    const definitionPopup = document.getElementById('definition-popup');
     const prevButton = document.getElementById('btn-prev');
     const learnButton = document.getElementById('btn-learn');
     const knowButton = document.getElementById('btn-know');
@@ -88,6 +90,9 @@
         cardWord.textContent = frontText;
         cardBackWord.textContent = frontText;
         cardTranslation.textContent = backText;
+        definitionPopup.textContent = wordEntry.definition;
+        definitionPopup.hidden = true;
+        infoButton.hidden = !wordEntry.definition;
         // Следующая карточка показывается сразу лицевой стороной — без анимации возврата.
         if (card.classList.contains('card--flipped')) {
             card.classList.add('card--no-transition');
@@ -95,7 +100,6 @@
             void card.offsetWidth;
             card.classList.remove('card--no-transition');
         }
-        roundLabel.textContent = 'Раунд ' + round + ' · карточка ' + (position + 1) + ' из ' + queue.length;
     }
 
     function setFlipped(value) {
@@ -205,7 +209,7 @@
 
     // Подпись у тумблера показывает текущее состояние, а не действие.
     function refreshModeLabels() {
-        shuffleLabel.textContent = shuffle ? 'вразброс' : 'по алфавиту';
+        shuffleLabel.textContent = shuffle ? 'вразброс' : 'по порядку';
         frontSideLabel.textContent = frontRussian ? 'русская' : 'английская';
     }
 
@@ -224,10 +228,19 @@
         if (!modeMenuDropdown.hidden && !modeMenu.contains(event.target)) {
             closeModeMenu();
         }
+        if (!definitionPopup.hidden &&
+            !definitionPopup.contains(event.target) && !infoButton.contains(event.target)) {
+            definitionPopup.hidden = true;
+        }
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !modeMenuDropdown.hidden) {
-            closeModeMenu();
+        if (event.key === 'Escape') {
+            if (!modeMenuDropdown.hidden) {
+                closeModeMenu();
+            }
+            if (!definitionPopup.hidden) {
+                definitionPopup.hidden = true;
+            }
         }
     });
 
@@ -245,6 +258,12 @@
     // ---------- Переход к предыдущей карточке ----------
 
     prevButton.addEventListener('click', goBack);
+
+    // Окошко английского описания: открывается и закрывается кликом по ⓘ.
+    infoButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        definitionPopup.hidden = !definitionPopup.hidden;
+    });
 
     // Свайп вправо по карточке — назад; отличаем его от клика-переворота.
     let touchStartX = 0;
