@@ -7,6 +7,7 @@
     --text: #e7eaf1;
     --text-dim: #9aa3b5;
     --accent: #5b8cff;
+    --amber: #e6a23c;
     --red: #e5484d;
     --red-hover: #d93c42;
     --green: #2fa36b;
@@ -50,6 +51,17 @@ a {
     margin-bottom: 28px;
 }
 
+.page-header__row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.page-header__main {
+    min-width: 0;
+}
+
 .page-header h1 {
     margin: 0 0 6px;
     font-size: 28px;
@@ -67,6 +79,7 @@ a {
 }
 
 .block-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -104,6 +117,75 @@ a {
     background: rgba(91, 140, 255, 0.12);
     border-radius: 999px;
     padding: 1px 10px;
+}
+
+/* Отметка статуса блока из кук: точка — в процессе, галочка — выучен. */
+.block-card__status {
+    display: none;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+.block-card--doing {
+    border-color: rgba(230, 162, 60, 0.55);
+}
+
+.block-card--doing .block-card__status {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+}
+
+.block-card--learned {
+    border-color: rgba(47, 163, 107, 0.6);
+}
+
+.block-card--learned .block-card__status {
+    display: block;
+    color: var(--green);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.block-card--learned .block-card__count {
+    color: var(--green);
+    background: rgba(47, 163, 107, 0.12);
+}
+
+/* Настройки на главной (шестерёнка в шапке): заметка и кнопка очистки кук */
+.settings-note {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    max-width: 200px;
+}
+
+.danger-button {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--red);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.danger-button:hover,
+.danger-button:focus-visible {
+    border-color: var(--red);
+    background: rgba(229, 72, 77, 0.12);
+    outline: none;
+}
+
+.danger-button:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 2px;
 }
 
 .loading,

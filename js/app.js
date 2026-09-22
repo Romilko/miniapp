@@ -1,13 +1,15 @@
 // Одностраничное приложение: список блоков и обучение — на одной странице,
 // без перезагрузок. Адрес отражает экран: «?block=N» — обучение блока N,
-// без параметра — список блоков; «назад» браузера или жест от края экрана
-// возвращают к списку. Порядок карточек и лицевая сторона — тумблеры в меню-
+// без параметра — список блоков; «назад» браузера, жест от края экрана и кнопка
+// выхода из обучения возвращают к списку по истории, не создавая новую запись. Порядок карточек и лицевая сторона — тумблеры в меню-
 // шестерёнке, переход назад (кнопка или свайп вправо) отменяет ответ по карточке,
 // английское описание слова — окошко по клику на ⓘ; кнопка ⓘ зафиксирована
 // в углу сцены, как кнопка «назад», не вращается с карточкой и остаётся
 // на месте при перевороте.
-// Весь прогресс — только в памяти текущего входа в блок: выход к списку
-// блоков или F5 сбрасывает его.
+// Отметки блоков на главной («в процессе» — янтарная точка, «выучен» — зелёная
+// галочка) хранятся в постоянных куках и удаляются только кнопкой в настройках;
+// статус не понижается: не открывал → в процессе → выучен. Прогресс внутри блока —
+// только в памяти текущего входа: выход к списку блоков или F5 сбрасывает его.
 
 (function () {
     // ---------- Список блоков ----------
@@ -16,6 +18,10 @@
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('error-box');
     const blocksGrid = document.getElementById('blocks-grid');
+    const settingsMenu = document.getElementById('settings-menu');
+    const settingsMenuButton = document.getElementById('settings-menu-button');
+    const settingsMenuDropdown = document.getElementById('settings-menu-dropdown');
+    const clearProgressButton = document.getElementById('btn-clear-progress');
 
     // ---------- Обучение ----------
 
@@ -86,11 +92,100 @@
             count.className = 'block-card__count';
             count.textContent = candidate.words.length + ' ' + wordsLabel(candidate.words.length);
 
-            anchor.append(title, range, count);
+            const status = document.createElement('span');
+            status.className = 'block-card__status';
+            status.setAttribute('aria-hidden', 'true');
+
+            anchor.append(title, range, count, status);
             fragment.appendChild(anchor);
+            blockCards.set(candidate.number, anchor);
         }
         blocksGrid.appendChild(fragment);
     }
+
+    // ---------- Отметки блоков в куках ----------
+
+    // Самый минимум: только статус блока, без прогресса внутри блока.
+    // Кука постоянная; удаляется только кнопкой «Очистить прогресс» в настройках.
+    const PROGRESS_COOKIE = 'blocks-progress';
+    const PROGRESS_COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60;
+    const blockCards = new Map();
+    const learnedBlocks = new Set();
+    const doingBlocks = new Set();
+
+    function saveProgressCookie() {
+        const value = 'learned:' + [...learnedBlocks].join(',') + '|doing:' + [...doingBlocks].join(',');
+        document.cookie = PROGRESS_COOKIE + '=' + value +
+            '; max-age=' + PROGRESS_COOKIE_MAX_AGE + '; path=/; SameSite=Lax';
+    }
+
+    function loadProgressCookie() {
+        for (const part of document.cookie.split(';')) {
+            const separatorIndex = part.indexOf('=');
+            if (separatorIndex === -1 || part.slice(0, separatorIndex).trim() !== PROGRESS_COOKIE) {
+                continue;
+            }
+            for (const section of part.slice(separatorIndex + 1).split('|')) {
+                const numbers = section.slice(section.indexOf(':') + 1)
+                    .split(',')
+                    .filter((candidate) => candidate !== '')
+                    .map(Number)
+                    .filter(Number.isInteger);
+                if (section.startsWith('learned:')) {
+                    numbers.forEach((number) => learnedBlocks.add(number));
+                } else if (section.startsWith('doing:')) {
+                    numbers.forEach((number) => doingBlocks.add(number));
+                }
+            }
+        }
+    }
+
+    function refreshBlockCards() {
+        for (const [number, blockCard] of blockCards) {
+            blockCard.classList.toggle('block-card--learned', learnedBlocks.has(number));
+            blockCard.classList.toggle('block-card--doing',
+                !learnedBlocks.has(number) && doingBlocks.has(number));
+        }
+    }
+
+    // Все слова блока отмечены «знаю» — блок выучен; любые ответы до этого —
+    // «в процессе». Статус не понижается: повторный вход в выученный блок с
+    // ошибками отметку не снимает.
+    function updateBlockStatus() {
+        if (block === null) {
+            return;
+        }
+        if (known.size >= block.words.length) {
+            learnedBlocks.add(block.number);
+            doingBlocks.delete(block.number);
+        } else if (!learnedBlocks.has(block.number)) {
+            doingBlocks.add(block.number);
+        }
+        saveProgressCookie();
+        refreshBlockCards();
+    }
+
+    function closeSettingsMenu() {
+        settingsMenuDropdown.hidden = true;
+        settingsMenuButton.setAttribute('aria-expanded', 'false');
+    }
+
+    settingsMenuButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const opened = settingsMenuDropdown.hidden;
+        settingsMenuDropdown.hidden = !opened;
+        settingsMenuButton.setAttribute('aria-expanded', String(opened));
+    });
+    clearProgressButton.addEventListener('click', () => {
+        if (!window.confirm('Удалить сохранённые отметки блоков?')) {
+            return;
+        }
+        learnedBlocks.clear();
+        doingBlocks.clear();
+        document.cookie = PROGRESS_COOKIE + '=; max-age=0; path=/; SameSite=Lax';
+        refreshBlockCards();
+        closeSettingsMenu();
+    });
 
     // ---------- Раунды и карточки ----------
 
@@ -187,6 +282,7 @@
             learning.add(wordIndex);
         }
         position += 1;
+        updateBlockStatus();
         renderProgress();
         if (position >= queue.length) {
             endRound();
@@ -308,13 +404,26 @@
         openBlock(blockNumber);
     }
 
-    function goToBlocks() {
-        history.pushState({}, '', new URL('.', window.location.href));
+    // Выход из обучения — буквальный «назад» по истории: запись «?block=N»
+    // снимается, и «назад» браузера после выхода не возвращает в обучение.
+    // При прямом входе по адресу (новая вкладка, перезагрузка) назад в приложение
+    // идти некуда — тогда обычный внутренний переход к списку.
+    let exitPending = false;
+    function exitToBlocks() {
+        if (history.state && history.state.app) {
+            if (!exitPending) {
+                exitPending = true;
+                history.back();
+            }
+            return;
+        }
+        history.pushState({ app: true }, '', new URL('.', window.location.href));
         renderFromLocation();
     }
 
     // Внутренние ссылки (карточки блоков, «ко всем блокам») открываются без перезагрузки;
     // ссылки в новой вкладке работают как обычная загрузка приложения по адресу.
+    // Ссылки выхода (data-back) идут literal назад по истории, а не новым переходом.
     document.addEventListener('click', (event) => {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey ||
             event.shiftKey || event.altKey) {
@@ -329,11 +438,18 @@
             return;
         }
         event.preventDefault();
-        history.pushState({}, '', url);
+        if (anchor.hasAttribute('data-back')) {
+            exitToBlocks();
+            return;
+        }
+        history.pushState({ app: true }, '', url);
         renderFromLocation();
     });
 
-    window.addEventListener('popstate', renderFromLocation);
+    window.addEventListener('popstate', () => {
+        exitPending = false;
+        renderFromLocation();
+    });
 
     // ---------- Меню режимов ----------
 
@@ -358,6 +474,9 @@
         if (!modeMenuDropdown.hidden && !modeMenu.contains(event.target)) {
             closeModeMenu();
         }
+        if (!settingsMenuDropdown.hidden && !settingsMenu.contains(event.target)) {
+            closeSettingsMenu();
+        }
         if (!definitionPopup.hidden &&
             !definitionPopup.contains(event.target) && !infoButton.contains(event.target)) {
             definitionPopup.hidden = true;
@@ -367,6 +486,9 @@
         if (event.key === 'Escape') {
             if (!modeMenuDropdown.hidden) {
                 closeModeMenu();
+            }
+            if (!settingsMenuDropdown.hidden) {
+                closeSettingsMenu();
             }
             if (!definitionPopup.hidden) {
                 definitionPopup.hidden = true;
@@ -445,7 +567,7 @@
         startRound();
         showView(trainingView);
     });
-    backToBlocksButton.addEventListener('click', goToBlocks);
+    backToBlocksButton.addEventListener('click', exitToBlocks);
     document.addEventListener('keydown', (event) => {
         const target = event.target;
         const onControl = target instanceof HTMLElement && ['BUTTON', 'INPUT', 'A'].includes(target.tagName);
@@ -471,7 +593,9 @@
             errorBox.hidden = false;
             errorBox.textContent = 'Не удалось загрузить список блоков: ' + loadError;
         } else {
+            loadProgressCookie();
             renderBlocksGrid();
+            refreshBlockCards();
         }
         renderFromLocation();
     })();
