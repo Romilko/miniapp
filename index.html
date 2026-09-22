@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#101318">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>5500 английских слов — блоки</title>
-    <link rel="stylesheet" href="css/styles.css?v=14">
+    <link rel="stylesheet" href="css/styles.css?v=16">
     <script defer src="js/data.js?v=3"></script>
-    <script defer src="js/app.js?v=7"></script>
+    <script defer src="js/app.js?v=11"></script>
 </head>
 <body>
 <div class="container" id="blocks-view">
@@ -16,15 +16,15 @@
         <div class="page-header__row">
             <div class="page-header__main">
                 <h1>5000 английских слов</h1>
-                <p>Выберите блок из 50 слов и начинайте обучение. Прогресс внутри блока не
-                    сохраняется, а отметки «в процессе» и «выучен» хранятся в этом браузере.</p>
+                <p>Выберите блок из 50 слов и начинайте обучение. Выученные слова
+                    сохраняются в этом браузере — блок продолжится с места остановки.</p>
             </div>
             <div class="mode-menu" id="settings-menu">
                 <button type="button" class="mode-menu__button" id="settings-menu-button"
                         aria-haspopup="true" aria-expanded="false" aria-label="Настройки"
                         title="Настройки">⚙</button>
                 <div class="mode-menu__dropdown" id="settings-menu-dropdown" hidden>
-                    <span class="settings-note">Отметки блоков хранятся в куках этого браузера.</span>
+                    <span class="settings-note">Прогресс выученных слов хранится в этом браузере (localStorage).</span>
                     <button type="button" class="danger-button" id="btn-clear-progress">Очистить прогресс</button>
                 </div>
             </div>
@@ -57,6 +57,8 @@
                         <input type="checkbox" id="front-side-toggle">
                         <span id="front-side-label">английская</span>
                     </label>
+                    <div class="mode-menu__divider"></div>
+                    <button type="button" class="danger-button" id="btn-restart-block">Начать заново</button>
                 </div>
             </div>
         </div>
@@ -116,6 +118,18 @@
         </div>
     </div>
 
+</div>
+
+<div class="modal-overlay" id="confirm-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true"
+         aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-text">
+        <h2 class="modal__title" id="confirm-modal-title"></h2>
+        <p class="modal__text" id="confirm-modal-text"></p>
+        <div class="modal__actions">
+            <button type="button" class="secondary-button" id="confirm-modal-cancel">Отмена</button>
+            <button type="button" class="danger-solid-button" id="confirm-modal-ok"></button>
+        </div>
+    </div>
 </div>
 </body>
 </html>

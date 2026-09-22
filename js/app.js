@@ -6,10 +6,14 @@
 // английское описание слова — окошко по клику на ⓘ; кнопка ⓘ зафиксирована
 // в углу сцены, как кнопка «назад», не вращается с карточкой и остаётся
 // на месте при перевороте.
-// Отметки блоков на главной («в процессе» — янтарная точка, «выучен» — зелёная
-// галочка) хранятся в постоянных куках и удаляются только кнопкой в настройках;
-// статус не понижается: не открывал → в процессе → выучен. Прогресс внутри блока —
-// только в памяти текущего входа: выход к списку блоков или F5 сбрасывает его.
+// Прогресс блоков хранится в localStorage: по каждому блоку — какие слова
+// выучены, какие «учу» и очередь раунда, повёрнутая так, что вход в блок
+// продолжается с того слова, на котором закончили. Полностью выученный блок
+// открывается сразу на финальном экране. Там же живут глобальные настройки
+// (порядок карточек и лицевая сторона). Статусы на главной («в процессе» —
+// янтарная точка, «выучен» — зелёная галочка) выводятся из этого же хранилища;
+// «Очистить прогресс» в настройках главной удаляет прогресс вместе с
+// настройками, «Начать заново» в блоке сбрасывает только прогресс блока.
 
 (function () {
     // ---------- Список блоков ----------
@@ -22,6 +26,7 @@
     const settingsMenuButton = document.getElementById('settings-menu-button');
     const settingsMenuDropdown = document.getElementById('settings-menu-dropdown');
     const clearProgressButton = document.getElementById('btn-clear-progress');
+    const restartBlockButton = document.getElementById('btn-restart-block');
 
     // ---------- Обучение ----------
 
@@ -99,70 +104,143 @@
             anchor.append(title, range, count, status);
             fragment.appendChild(anchor);
             blockCards.set(candidate.number, anchor);
+            blockTotals.set(candidate.number, candidate.words.length);
         }
         blocksGrid.appendChild(fragment);
     }
 
-    // ---------- Отметки блоков в куках ----------
+    // ---------- Прогресс блоков и настройки в localStorage ----------
 
-    // Самый минимум: только статус блока, без прогресса внутри блока.
-    // Кука постоянная; удаляется только кнопкой «Очистить прогресс» в настройках.
-    const PROGRESS_COOKIE = 'blocks-progress';
-    const PROGRESS_COOKIE_MAX_AGE = 10 * 365 * 24 * 60 * 60;
+    // По каждому блоку хранятся выученные слова, слова «учу» и очередь раунда,
+    // повёрнутая текущим словом вперёд — вход продолжает с того места, где
+    // закончили. Рядом живут глобальные настройки (порядок, лицевая сторона).
+    // Хранилище постоянное; «Очистить прогресс» в настройках главной удаляет
+    // прогресс вместе с настройками, «Начать заново» — только прогресс блока.
+    const PROGRESS_KEY = 'word-progress';
     const blockCards = new Map();
-    const learnedBlocks = new Set();
-    const doingBlocks = new Set();
+    const blockTotals = new Map();
+    const blockProgress = new Map();
 
-    function saveProgressCookie() {
-        const value = 'learned:' + [...learnedBlocks].join(',') + '|doing:' + [...doingBlocks].join(',');
-        document.cookie = PROGRESS_COOKIE + '=' + value +
-            '; max-age=' + PROGRESS_COOKIE_MAX_AGE + '; path=/; SameSite=Lax';
-    }
-
-    function loadProgressCookie() {
-        for (const part of document.cookie.split(';')) {
-            const separatorIndex = part.indexOf('=');
-            if (separatorIndex === -1 || part.slice(0, separatorIndex).trim() !== PROGRESS_COOKIE) {
+    function loadProgressStorage() {
+        let raw = null;
+        try {
+            raw = localStorage.getItem(PROGRESS_KEY);
+        } catch (throwable) {
+            return;
+        }
+        if (raw === null) {
+            return;
+        }
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (throwable) {
+            return;
+        }
+        const settings = parsed.settings;
+        if (settings !== null && typeof settings === 'object') {
+            shuffle = settings.shuffle === true;
+            frontRussian = settings.frontRussian === true;
+        }
+        // Новый формат — {settings, blocks}; старый — {номер: [выученные индексы]}.
+        const blocks = (parsed.blocks !== null && typeof parsed.blocks === 'object')
+            ? parsed.blocks
+            : parsed;
+        for (const [key, value] of Object.entries(blocks)) {
+            const number = Number(key);
+            if (!Number.isInteger(number)) {
                 continue;
             }
-            for (const section of part.slice(separatorIndex + 1).split('|')) {
-                const numbers = section.slice(section.indexOf(':') + 1)
-                    .split(',')
-                    .filter((candidate) => candidate !== '')
-                    .map(Number)
-                    .filter(Number.isInteger);
-                if (section.startsWith('learned:')) {
-                    numbers.forEach((number) => learnedBlocks.add(number));
-                } else if (section.startsWith('doing:')) {
-                    numbers.forEach((number) => doingBlocks.add(number));
-                }
+            if (Array.isArray(value)) {
+                blockProgress.set(number, {
+                    known: value.filter((index) => Number.isInteger(index)),
+                    learning: [],
+                    queue: []
+                });
+                continue;
             }
+            if (value === null || typeof value !== 'object') {
+                continue;
+            }
+            blockProgress.set(number, {
+                known: Array.isArray(value.known)
+                    ? value.known.filter((index) => Number.isInteger(index)) : [],
+                learning: Array.isArray(value.learning)
+                    ? value.learning.filter((index) => Number.isInteger(index)) : [],
+                queue: Array.isArray(value.queue)
+                    ? value.queue.filter((index) => Number.isInteger(index)) : []
+            });
+        }
+    }
+
+    function saveProgressStorage() {
+        const data = {
+            settings: { shuffle: shuffle, frontRussian: frontRussian },
+            blocks: {}
+        };
+        for (const [number, state] of blockProgress) {
+            data.blocks[number] = state;
+        }
+        try {
+            localStorage.setItem(PROGRESS_KEY, JSON.stringify(data));
+        } catch (throwable) {
+            // localStorage недоступен (приватный режим, квота) — обучение
+            // продолжается без сохранения.
         }
     }
 
     function refreshBlockCards() {
         for (const [number, blockCard] of blockCards) {
-            blockCard.classList.toggle('block-card--learned', learnedBlocks.has(number));
-            blockCard.classList.toggle('block-card--doing',
-                !learnedBlocks.has(number) && doingBlocks.has(number));
+            const state = blockProgress.get(number);
+            const total = blockTotals.get(number);
+            const knownCount = state === undefined ? 0 : state.known.length;
+            const learned = total !== undefined && knownCount >= total;
+            blockCard.classList.toggle('block-card--learned', learned);
+            blockCard.classList.toggle('block-card--doing', knownCount > 0 && !learned);
         }
     }
 
-    // Все слова блока отмечены «знаю» — блок выучен; любые ответы до этого —
-    // «в процессе». Статус не понижается: повторный вход в выученный блок с
-    // ошибками отметку не снимает.
+    // Снимок состояния блока: очередь поворачивается так, что первым при
+    // восстановлении покажется слово, на котором остановились, а пройденные
+    // в раунде слова уходят в конец (ставшие выученными отфильтруются).
+    function snapshotBlockState() {
+        return {
+            known: [...known],
+            learning: [...learning],
+            queue: queue.slice(position).concat(queue.slice(0, position))
+        };
+    }
+
+    // Ответ, отмена ответа и смена настроек сохраняют состояние блока и настройки.
     function updateBlockStatus() {
-        if (block === null) {
-            return;
+        if (block !== null) {
+            blockProgress.set(block.number, snapshotBlockState());
+            refreshBlockCards();
         }
-        if (known.size >= block.words.length) {
-            learnedBlocks.add(block.number);
-            doingBlocks.delete(block.number);
-        } else if (!learnedBlocks.has(block.number)) {
-            doingBlocks.add(block.number);
-        }
-        saveProgressCookie();
-        refreshBlockCards();
+        saveProgressStorage();
+    }
+
+    // «Начать заново»: сбрасывает и сохранённый в localStorage прогресс блока,
+    // и текущую сессию — блок снова идёт с первого слова.
+    function restartBlock() {
+        confirmAction(
+            'Начать заново',
+            'Сбросить сохранённый прогресс блока ' + block.number + ' и начать его с первого слова?',
+            'Начать заново'
+        ).then((confirmed) => {
+            if (!confirmed) {
+                return;
+            }
+            blockProgress.delete(block.number);
+            saveProgressStorage();
+            known = new Set();
+            learning = new Set();
+            round = 1;
+            startRound();
+            showView(trainingView);
+            closeModeMenu();
+            refreshBlockCards();
+        });
     }
 
     function closeSettingsMenu() {
@@ -177,14 +255,73 @@
         settingsMenuButton.setAttribute('aria-expanded', String(opened));
     });
     clearProgressButton.addEventListener('click', () => {
-        if (!window.confirm('Удалить сохранённые отметки блоков?')) {
+        confirmAction(
+            'Очистить прогресс',
+            'Удалить весь сохранённый прогресс по всем блокам?',
+            'Очистить'
+        ).then((confirmed) => {
+            if (!confirmed) {
+                return;
+            }
+            blockProgress.clear();
+            // Сброс прогресса обнуляет и настройки — до дефолтных значений.
+            shuffle = false;
+            frontRussian = false;
+            shuffleToggle.checked = false;
+            frontSideToggle.checked = false;
+            refreshModeLabels();
+            try {
+                localStorage.removeItem(PROGRESS_KEY);
+            } catch (throwable) {
+                // Недоступный localStorage не должен ломать очистку.
+            }
+            refreshBlockCards();
+            closeSettingsMenu();
+        });
+    });
+
+    // ---------- Диалог подтверждения ----------
+
+    // Кастомная замена window.confirm в стиле приложения: обещает true при
+    // подтверждении и false при отмене (кнопка, Escape, клик по затемнению).
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmTitle = document.getElementById('confirm-modal-title');
+    const confirmText = document.getElementById('confirm-modal-text');
+    const confirmOkButton = document.getElementById('confirm-modal-ok');
+    const confirmCancelButton = document.getElementById('confirm-modal-cancel');
+    let confirmResolver = null;
+
+    function confirmAction(title, text, okLabel) {
+        return new Promise((resolve) => {
+            confirmResolver = resolve;
+            confirmTitle.textContent = title;
+            confirmText.textContent = text;
+            confirmOkButton.textContent = okLabel;
+            confirmModal.hidden = false;
+            confirmCancelButton.focus();
+        });
+    }
+
+    function settleConfirm(confirmed) {
+        if (confirmResolver === null) {
             return;
         }
-        learnedBlocks.clear();
-        doingBlocks.clear();
-        document.cookie = PROGRESS_COOKIE + '=; max-age=0; path=/; SameSite=Lax';
-        refreshBlockCards();
+        const resolve = confirmResolver;
+        confirmResolver = null;
+        confirmModal.hidden = true;
+        // Диалог закрывает и меню, из которого вызван, — одинаково для
+        // подтверждения, «Отмены», Escape и клика по затемнению.
+        closeModeMenu();
         closeSettingsMenu();
+        resolve(confirmed);
+    }
+
+    confirmOkButton.addEventListener('click', () => settleConfirm(true));
+    confirmCancelButton.addEventListener('click', () => settleConfirm(false));
+    confirmModal.addEventListener('click', (event) => {
+        if (event.target === confirmModal) {
+            settleConfirm(false);
+        }
     });
 
     // ---------- Раунды и карточки ----------
@@ -203,18 +340,21 @@
     }
 
     function buildQueue() {
-        queue = block.words
+        const result = block.words
             .map((wordEntry, index) => index)
             .filter((index) => !known.has(index));
         if (shuffle) {
-            shuffleArray(queue);
+            shuffleArray(result);
         } else {
-            queue.sort((a, b) => a - b);
+            result.sort((a, b) => a - b);
         }
+        return result;
     }
 
-    function startRound() {
-        buildQueue();
+    // restoredQueue — сохранённая очередь: продолжение раунда в прежнем порядке
+    // со слова, на котором закончили; без неё раунд строится заново.
+    function startRound(restoredQueue) {
+        queue = restoredQueue !== undefined ? restoredQueue : buildQueue();
         position = 0;
         answers = [];
         renderCard();
@@ -307,6 +447,7 @@
         if (lastAnswer.wasLearning) {
             learning.add(lastAnswer.wordIndex);
         }
+        updateBlockStatus();
         renderCard();
         renderProgress();
         updatePrevButton();
@@ -316,13 +457,17 @@
         prevButton.disabled = position === 0;
     }
 
+    function showFinishView() {
+        finishStats.textContent =
+            'Блок ' + block.number + ' — все ' + block.words.length + ' ' +
+            wordsLabel(block.words.length) + ' отмечены как известные.';
+        showView(finishView);
+    }
+
     function endRound() {
         round += 1;
         if (known.size >= block.words.length) {
-            finishStats.textContent =
-                'Блок ' + block.number + ' — все ' + block.words.length + ' ' +
-                wordsLabel(block.words.length) + ' отмечены как известные.';
-            showView(finishView);
+            showFinishView();
         } else {
             roundRemaining.textContent =
                 'Знаю ' + known.size + ' из ' + block.words.length +
@@ -354,16 +499,17 @@
         document.title = '5500 английских слов — блоки';
     }
 
-    // Каждый вход в блок начинается с чистого состояния и дефолтных режимов.
+    // Вход в блок восстанавливает сохранённый прогресс: выученные слова, слова
+    // «учу» и очередь раунда (первым покажется слово, на котором закончили).
+    // Настройки не сбрасываются — они глобальные и хранятся в том же хранилище.
     function resetTrainingState() {
-        known = new Set();
-        learning = new Set();
+        const saved = blockProgress.get(block.number);
+        known = new Set(saved === undefined ? [] : saved.known);
+        learning = new Set(saved === undefined ? [] : saved.learning);
+        queue = saved === undefined ? [] : saved.queue.filter((index) => !known.has(index));
+        position = 0;
+        answers = [];
         round = 1;
-        shuffle = false;
-        frontRussian = false;
-        shuffleToggle.checked = false;
-        frontSideToggle.checked = false;
-        refreshModeLabels();
         closeModeMenu();
     }
 
@@ -384,8 +530,13 @@
         blockTitle.textContent = 'Блок ' + block.number;
         blockRange.textContent = 'слова ' + block.from + '–' + block.to;
         resetTrainingState();
-        startRound();
-        showView(trainingView);
+        if (known.size >= block.words.length) {
+            // Полностью выученный блок открывается сразу на финальный экран.
+            showFinishView();
+        } else {
+            startRound(queue.length > 0 ? queue : undefined);
+            showView(trainingView);
+        }
     }
 
     // ---------- Маршрутизация по адресу страницы ----------
@@ -484,6 +635,10 @@
     });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
+            if (!confirmModal.hidden) {
+                settleConfirm(false);
+                return;
+            }
             if (!modeMenuDropdown.hidden) {
                 closeModeMenu();
             }
@@ -500,11 +655,13 @@
         shuffle = shuffleToggle.checked;
         reorderRemaining();
         refreshModeLabels();
+        updateBlockStatus();
     });
     frontSideToggle.addEventListener('change', () => {
         frontRussian = frontSideToggle.checked;
         renderCard();
         refreshModeLabels();
+        updateBlockStatus();
     });
 
     // ---------- Переход к предыдущей карточке ----------
@@ -560,15 +717,14 @@
         startRound();
         showView(trainingView);
     });
-    restartButton.addEventListener('click', () => {
-        known.clear();
-        learning.clear();
-        round = 1;
-        startRound();
-        showView(trainingView);
-    });
+    restartButton.addEventListener('click', restartBlock);
+    restartBlockButton.addEventListener('click', restartBlock);
     backToBlocksButton.addEventListener('click', exitToBlocks);
     document.addEventListener('keydown', (event) => {
+        // Пока открыт диалог подтверждения, карточки сзади не реагируют.
+        if (!confirmModal.hidden) {
+            return;
+        }
         const target = event.target;
         const onControl = target instanceof HTMLElement && ['BUTTON', 'INPUT', 'A'].includes(target.tagName);
         if (event.code === 'Space' && !trainingView.hidden) {
@@ -593,7 +749,10 @@
             errorBox.hidden = false;
             errorBox.textContent = 'Не удалось загрузить список блоков: ' + loadError;
         } else {
-            loadProgressCookie();
+            loadProgressStorage();
+            shuffleToggle.checked = shuffle;
+            frontSideToggle.checked = frontRussian;
+            refreshModeLabels();
             renderBlocksGrid();
             refreshBlockCards();
         }
