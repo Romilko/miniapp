@@ -1,4 +1,6 @@
-// Страница обучения: карточки блока, кнопки «Учу»/«Знаю», раунды, тумблер «Вразброс».
+// Страница обучения: карточки блока, кнопки «Учу»/«Знаю», раунды.
+// Порядок карточек и лицевая сторона — тумблеры в меню-шестерёнке,
+// переход назад (кнопка или свайп вправо) отменяет ответ по карточке.
 // Весь прогресс — только в памяти этой страницы: любой уход или F5 сбрасывает его.
 
 (function () {
@@ -9,12 +11,19 @@
     const blockRange = document.getElementById('block-range');
     const progressTrack = document.getElementById('progress-track');
     const progressLabel = document.getElementById('progress-label');
+    const modeMenu = document.getElementById('mode-menu');
+    const modeMenuButton = document.getElementById('mode-menu-button');
+    const modeMenuDropdown = document.getElementById('mode-menu-dropdown');
     const shuffleToggle = document.getElementById('shuffle-toggle');
+    const shuffleLabel = document.getElementById('shuffle-label');
+    const frontSideToggle = document.getElementById('front-side-toggle');
+    const frontSideLabel = document.getElementById('front-side-label');
     const card = document.getElementById('card');
     const cardWord = document.getElementById('card-word');
     const cardBackWord = document.getElementById('card-back-word');
     const cardTranslation = document.getElementById('card-translation');
     const roundLabel = document.getElementById('round-label');
+    const prevButton = document.getElementById('btn-prev');
     const learnButton = document.getElementById('btn-learn');
     const knowButton = document.getElementById('btn-know');
     const continueButton = document.getElementById('btn-continue');
@@ -35,7 +44,9 @@
     let known = new Set();
     let learning = new Set();
     let shuffle = false;
+    let frontRussian = false;
     let round = 1;
+    // Ответы раунда с данными для отмены: {wordIndex, isKnown, wasKnown, wasLearning}.
     let answers = [];
 
     function showView(view) {
@@ -66,14 +77,24 @@
         answers = [];
         renderCard();
         renderProgress();
+        updatePrevButton();
     }
 
     function renderCard() {
         const wordEntry = block.words[queue[position]];
-        cardWord.textContent = wordEntry.word;
-        cardBackWord.textContent = wordEntry.word;
-        cardTranslation.textContent = wordEntry.translation;
-        setFlipped(false);
+        // Лицевая сторона зависит от режима: слово или перевод.
+        const frontText = frontRussian ? wordEntry.translation : wordEntry.word;
+        const backText = frontRussian ? wordEntry.word : wordEntry.translation;
+        cardWord.textContent = frontText;
+        cardBackWord.textContent = frontText;
+        cardTranslation.textContent = backText;
+        // Следующая карточка показывается сразу лицевой стороной — без анимации возврата.
+        if (card.classList.contains('card--flipped')) {
+            card.classList.add('card--no-transition');
+            setFlipped(false);
+            void card.offsetWidth;
+            card.classList.remove('card--no-transition');
+        }
         roundLabel.textContent = 'Раунд ' + round + ' · карточка ' + (position + 1) + ' из ' + queue.length;
     }
 
@@ -96,20 +117,26 @@
             const segment = document.createElement('div');
             segment.className = 'progress-segment';
             if (index < answers.length) {
-                segment.classList.add(answers[index] ? 'progress-segment--know' : 'progress-segment--learn');
+                segment.classList.add(answers[index].isKnown ? 'progress-segment--know' : 'progress-segment--learn');
             }
             progressTrack.appendChild(segment);
         }
     }
 
     function answer(isKnown) {
+        const wordIndex = queue[position];
+        answers.push({
+            wordIndex: wordIndex,
+            isKnown: isKnown,
+            wasKnown: known.has(wordIndex),
+            wasLearning: learning.has(wordIndex)
+        });
         if (isKnown) {
-            known.add(queue[position]);
-            learning.delete(queue[position]);
+            known.add(wordIndex);
+            learning.delete(wordIndex);
         } else {
-            learning.add(queue[position]);
+            learning.add(wordIndex);
         }
-        answers.push(isKnown);
         position += 1;
         renderProgress();
         if (position >= queue.length) {
@@ -117,6 +144,31 @@
         } else {
             renderCard();
         }
+        updatePrevButton();
+    }
+
+    // Возврат к предыдущей карточке: её ответ отменяется, можно дойти до первой в раунде.
+    function goBack() {
+        if (position === 0) {
+            return;
+        }
+        position -= 1;
+        const lastAnswer = answers.pop();
+        known.delete(lastAnswer.wordIndex);
+        learning.delete(lastAnswer.wordIndex);
+        if (lastAnswer.wasKnown) {
+            known.add(lastAnswer.wordIndex);
+        }
+        if (lastAnswer.wasLearning) {
+            learning.add(lastAnswer.wordIndex);
+        }
+        renderCard();
+        renderProgress();
+        updatePrevButton();
+    }
+
+    function updatePrevButton() {
+        prevButton.disabled = position === 0;
     }
 
     function endRound() {
@@ -136,19 +188,101 @@
         }
     }
 
-    // Тумблер пересобирает порядок ещё не показанных карточек текущего раунда.
+    // Смена порядка пересобирает порядок ещё не показанных карточек текущего раунда;
+    // текущая и уже пройденные (для кнопки «назад») остаются на своих местах.
     function reorderRemaining() {
-        const shown = queue.slice(0, position);
-        const remaining = queue.slice(position);
+        const passed = queue.slice(0, position + 1);
+        const upcoming = queue.slice(position + 1);
         if (shuffle) {
-            shuffleArray(remaining);
+            shuffleArray(upcoming);
         } else {
-            remaining.sort((a, b) => a - b);
+            upcoming.sort((a, b) => a - b);
         }
-        queue = shown.concat(remaining);
+        queue = passed.concat(upcoming);
     }
 
-    card.addEventListener('click', flipCard);
+    // ---------- Меню режимов ----------
+
+    // Подпись у тумблера показывает текущее состояние, а не действие.
+    function refreshModeLabels() {
+        shuffleLabel.textContent = shuffle ? 'вразброс' : 'по алфавиту';
+        frontSideLabel.textContent = frontRussian ? 'русская' : 'английская';
+    }
+
+    function closeModeMenu() {
+        modeMenuDropdown.hidden = true;
+        modeMenuButton.setAttribute('aria-expanded', 'false');
+    }
+
+    modeMenuButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const opened = modeMenuDropdown.hidden;
+        modeMenuDropdown.hidden = !opened;
+        modeMenuButton.setAttribute('aria-expanded', String(opened));
+    });
+    document.addEventListener('click', (event) => {
+        if (!modeMenuDropdown.hidden && !modeMenu.contains(event.target)) {
+            closeModeMenu();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modeMenuDropdown.hidden) {
+            closeModeMenu();
+        }
+    });
+
+    shuffleToggle.addEventListener('change', () => {
+        shuffle = shuffleToggle.checked;
+        reorderRemaining();
+        refreshModeLabels();
+    });
+    frontSideToggle.addEventListener('change', () => {
+        frontRussian = frontSideToggle.checked;
+        renderCard();
+        refreshModeLabels();
+    });
+
+    // ---------- Переход к предыдущей карточке ----------
+
+    prevButton.addEventListener('click', goBack);
+
+    // Свайп вправо по карточке — назад; отличаем его от клика-переворота.
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchTracking = false;
+    let swipeConsumedClick = false;
+
+    card.addEventListener('touchstart', (event) => {
+        swipeConsumedClick = false;
+        if (event.touches.length !== 1) {
+            touchTracking = false;
+            return;
+        }
+        touchTracking = true;
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+    }, { passive: true });
+    card.addEventListener('touchend', (event) => {
+        if (!touchTracking) {
+            return;
+        }
+        touchTracking = false;
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && position > 0) {
+            swipeConsumedClick = true;
+            goBack();
+        }
+    });
+
+    card.addEventListener('click', () => {
+        if (swipeConsumedClick) {
+            swipeConsumedClick = false;
+            return;
+        }
+        flipCard();
+    });
     learnButton.addEventListener('click', () => answer(false));
     knowButton.addEventListener('click', () => answer(true));
     continueButton.addEventListener('click', () => {
@@ -165,20 +299,18 @@
     backToBlocksButton.addEventListener('click', () => {
         window.location.href = 'index.html';
     });
-    shuffleToggle.addEventListener('change', () => {
-        shuffle = shuffleToggle.checked;
-        reorderRemaining();
-    });
     document.addEventListener('keydown', (event) => {
-        if (event.code !== 'Space') {
-            return;
-        }
         const target = event.target;
-        if (target instanceof HTMLElement && ['BUTTON', 'INPUT', 'A'].includes(target.tagName)) {
-            return;
+        const onControl = target instanceof HTMLElement && ['BUTTON', 'INPUT', 'A'].includes(target.tagName);
+        if (event.code === 'Space') {
+            if (onControl) {
+                return;
+            }
+            event.preventDefault();
+            flipCard();
+        } else if (event.code === 'ArrowLeft' && !trainingView.hidden && !onControl) {
+            goBack();
         }
-        event.preventDefault();
-        flipCard();
     });
 
     (async function init() {

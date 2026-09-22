@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Обучение — карточки слов</title>
-    <link rel="stylesheet" href="css/styles.css?v=4">
+    <link rel="stylesheet" href="css/styles.css?v=8">
     <script defer src="js/data.js?v=2"></script>
-    <script defer src="js/train.js?v=3"></script>
+    <script defer src="js/train.js?v=7"></script>
 </head>
 <body>
 
@@ -19,10 +19,21 @@
                 <h1 class="block-heading" id="block-title">Блок</h1>
                 <span class="block-subheading" id="block-range"></span>
             </div>
-            <label class="switch-row">
-                <input type="checkbox" id="shuffle-toggle">
-                Вразброс
-            </label>
+            <div class="mode-menu" id="mode-menu">
+                <button type="button" class="mode-menu__button" id="mode-menu-button"
+                        aria-haspopup="true" aria-expanded="false" aria-label="Настройки режима"
+                        title="Настройки режима">⚙</button>
+                <div class="mode-menu__dropdown" id="mode-menu-dropdown" hidden>
+                    <label class="switch-row">
+                        <input type="checkbox" id="shuffle-toggle">
+                        <span id="shuffle-label">по алфавиту</span>
+                    </label>
+                    <label class="switch-row">
+                        <input type="checkbox" id="front-side-toggle">
+                        <span id="front-side-label">английская</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <div class="progress-track" id="progress-track"></div>
@@ -39,6 +50,8 @@
                     <div class="card-face__translation" id="card-translation"></div>
                 </div>
             </div>
+            <button type="button" class="prev-button" id="btn-prev"
+                    aria-label="Предыдущая карточка" title="Предыдущая карточка" disabled>←</button>
         </div>
 
         <div class="round-label" id="round-label"></div>
