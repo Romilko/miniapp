@@ -2,22 +2,107 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#101318">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>5500 английских слов — блоки</title>
     <link rel="stylesheet" href="css/styles.css?v=10">
-    <script defer src="js/data.js?v=2"></script>
-    <script defer src="js/index.js?v=2"></script>
+    <script defer src="js/data.js?v=3"></script>
+    <script defer src="js/app.js?v=1"></script>
 </head>
 <body>
-<div class="container">
+<div class="container" id="blocks-view">
     <header class="page-header">
         <h1>5000 английских слов</h1>
-        <p>Выберите блок из 50 слов и начинайте обучение. Прогресс не сохраняется и живёт,
-            пока открыта страница обучения.</p>
+        <p>Выберите блок из 50 слов и начинайте обучение. Прогресс не сохраняется:
+            выход к списку блоков или перезагрузка страницы сбрасывает его.</p>
     </header>
     <div id="loading" class="loading">Загружаем блоки…</div>
     <div id="error-box" class="error-box" hidden></div>
     <div id="blocks-grid" class="blocks-grid"></div>
+</div>
+
+<div class="training-shell" id="training-shell" hidden>
+
+    <div id="training-view" hidden>
+        <div class="training-topbar">
+            <div class="training-topbar__left">
+                <a class="back-link" href=".">← ко всем блокам</a>
+                <h1 class="block-heading" id="block-title">Блок</h1>
+                <span class="block-subheading" id="block-range"></span>
+            </div>
+            <div class="mode-menu" id="mode-menu">
+                <button type="button" class="mode-menu__button" id="mode-menu-button"
+                        aria-haspopup="true" aria-expanded="false" aria-label="Настройки режима"
+                        title="Настройки режима">⚙</button>
+                <div class="mode-menu__dropdown" id="mode-menu-dropdown" hidden>
+                    <label class="switch-row">
+                        <input type="checkbox" id="shuffle-toggle">
+                        <span id="shuffle-label">по порядку</span>
+                    </label>
+                    <label class="switch-row">
+                        <input type="checkbox" id="front-side-toggle">
+                        <span id="front-side-label">английская</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-track" id="progress-track"></div>
+        <div class="progress-label" id="progress-label">Знаю 0 из 0</div>
+
+        <div class="card-scene">
+            <div class="card" id="card">
+                <div class="card-face card-face--front">
+                    <div class="card-face__word" id="card-word"></div>
+                    <button type="button" class="info-button" id="btn-info"
+                            aria-label="Описание слова" title="Описание слова" hidden>i</button>
+                </div>
+                <div class="card-face card-face--back">
+                    <div class="card-face__word-small" id="card-back-word"></div>
+                    <div class="card-face__translation" id="card-translation"></div>
+                </div>
+            </div>
+            <button type="button" class="prev-button" id="btn-prev"
+                    aria-label="Предыдущая карточка" title="Предыдущая карточка" disabled>←</button>
+            <div class="definition-popup" id="definition-popup" hidden></div>
+        </div>
+
+        <div class="answer-buttons">
+            <button type="button" class="answer-button answer-button--learn" id="btn-learn">Учу</button>
+            <button type="button" class="answer-button answer-button--know" id="btn-know">Знаю</button>
+        </div>
+    </div>
+
+    <div id="round-end-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">🔁</div>
+        <h2 class="interstitial__title">Раунд завершён</h2>
+        <p class="interstitial__text" id="round-remaining"></p>
+        <div class="interstitial__actions">
+            <button type="button" class="primary-button" id="btn-continue">Продолжить</button>
+            <a class="secondary-button" href=".">К списку блоков</a>
+        </div>
+    </div>
+
+    <div id="finish-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">🎉</div>
+        <h2 class="interstitial__title">Блок выучен!</h2>
+        <p class="interstitial__text" id="finish-stats"></p>
+        <div class="interstitial__actions">
+            <button type="button" class="primary-button" id="btn-restart">Начать заново</button>
+            <button type="button" class="secondary-button" id="btn-back-to-blocks">К списку блоков</button>
+        </div>
+    </div>
+
+    <div id="error-view" class="interstitial" hidden>
+        <div class="interstitial__emoji">⚠️</div>
+        <h2 class="interstitial__title">Что-то пошло не так</h2>
+        <p class="interstitial__text" id="error-text"></p>
+        <div class="interstitial__actions">
+            <a class="primary-button" href=".">К списку блоков</a>
+        </div>
+    </div>
+
 </div>
 </body>
 </html>

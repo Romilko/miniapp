@@ -1,13 +1,23 @@
-// Страница обучения: карточки блока, кнопки «Учу»/«Знаю», раунды.
-// Порядок карточек и лицевая сторона — тумблеры в меню-шестерёнке,
-// переход назад (кнопка или свайп вправо) отменяет ответ по карточке,
+// Одностраничное приложение: список блоков и обучение — на одной странице,
+// без перезагрузок. Адрес отражает экран: «?block=N» — обучение блока N,
+// без параметра — список блоков; «назад» браузера или жест от края экрана
+// возвращают к списку. Порядок карточек и лицевая сторона — тумблеры в меню-
+// шестерёнке, переход назад (кнопка или свайп вправо) отменяет ответ по карточке,
 // английское описание слова — окошко по клику на ⓘ в углу карточки.
-// Весь прогресс — только в памяти этой страницы: любой уход или F5 сбрасывает его.
+// Весь прогресс — только в памяти текущего входа в блок: выход к списку
+// блоков или F5 сбрасывает его.
 
 (function () {
-    const params = new URLSearchParams(window.location.search);
-    const blockNumber = Number(params.get('block'));
+    // ---------- Список блоков ----------
 
+    const blocksView = document.getElementById('blocks-view');
+    const loading = document.getElementById('loading');
+    const errorBox = document.getElementById('error-box');
+    const blocksGrid = document.getElementById('blocks-grid');
+
+    // ---------- Обучение ----------
+
+    const trainingShell = document.getElementById('training-shell');
     const blockTitle = document.getElementById('block-title');
     const blockRange = document.getElementById('block-range');
     const progressTrack = document.getElementById('progress-track');
@@ -40,6 +50,8 @@
     const finishView = document.getElementById('finish-view');
     const errorView = document.getElementById('error-view');
 
+    let blocks = null;
+    let loadError = null;
     let block = null;
     let queue = [];
     let position = 0;
@@ -51,6 +63,35 @@
     // Ответы раунда с данными для отмены: {wordIndex, isKnown, wasKnown, wasLearning}.
     let answers = [];
 
+    // ---------- Отрисовка списка блоков ----------
+
+    function renderBlocksGrid() {
+        const fragment = document.createDocumentFragment();
+        for (const candidate of blocks) {
+            const anchor = document.createElement('a');
+            anchor.className = 'block-card';
+            anchor.href = '?block=' + encodeURIComponent(candidate.number);
+
+            const title = document.createElement('span');
+            title.className = 'block-card__title';
+            title.textContent = 'Блок ' + candidate.number;
+
+            const range = document.createElement('span');
+            range.className = 'block-card__range';
+            range.textContent = 'слова ' + candidate.from + '–' + candidate.to;
+
+            const count = document.createElement('span');
+            count.className = 'block-card__count';
+            count.textContent = candidate.words.length + ' ' + wordsLabel(candidate.words.length);
+
+            anchor.append(title, range, count);
+            fragment.appendChild(anchor);
+        }
+        blocksGrid.appendChild(fragment);
+    }
+
+    // ---------- Раунды и карточки ----------
+
     function showView(view) {
         for (const candidate of [trainingView, roundEndView, finishView, errorView]) {
             candidate.hidden = candidate !== view;
@@ -58,6 +99,8 @@
     }
 
     function showError(message) {
+        blocksView.hidden = true;
+        trainingShell.hidden = false;
         errorText.textContent = message;
         showView(errorView);
     }
@@ -205,6 +248,91 @@
         queue = passed.concat(upcoming);
     }
 
+    // ---------- Переключение экранов ----------
+
+    function showBlocksView() {
+        trainingShell.hidden = true;
+        blocksView.hidden = false;
+        document.title = '5500 английских слов — блоки';
+    }
+
+    // Каждый вход в блок начинается с чистого состояния и дефолтных режимов.
+    function resetTrainingState() {
+        known = new Set();
+        learning = new Set();
+        round = 1;
+        shuffle = false;
+        frontRussian = false;
+        shuffleToggle.checked = false;
+        frontSideToggle.checked = false;
+        refreshModeLabels();
+        closeModeMenu();
+    }
+
+    function openBlock(blockNumber) {
+        if (loadError !== null) {
+            showError('Не удалось загрузить слова: ' + loadError);
+            return;
+        }
+        const foundBlock = blocks.find((candidate) => candidate.number === blockNumber);
+        if (!foundBlock) {
+            showError('Блок ' + blockNumber + ' не найден.');
+            return;
+        }
+        block = foundBlock;
+        blocksView.hidden = true;
+        trainingShell.hidden = false;
+        document.title = 'Блок ' + blockNumber + ' — обучение';
+        blockTitle.textContent = 'Блок ' + block.number;
+        blockRange.textContent = 'слова ' + block.from + '–' + block.to;
+        resetTrainingState();
+        startRound();
+        showView(trainingView);
+    }
+
+    // ---------- Маршрутизация по адресу страницы ----------
+
+    function renderFromLocation() {
+        const rawBlock = new URLSearchParams(window.location.search).get('block');
+        if (rawBlock === null) {
+            showBlocksView();
+            return;
+        }
+        const blockNumber = Number(rawBlock);
+        if (!Number.isInteger(blockNumber) || blockNumber < 1) {
+            showError('Некорректный номер блока: ' + rawBlock);
+            return;
+        }
+        openBlock(blockNumber);
+    }
+
+    function goToBlocks() {
+        history.pushState({}, '', new URL('.', window.location.href));
+        renderFromLocation();
+    }
+
+    // Внутренние ссылки (карточки блоков, «ко всем блокам») открываются без перезагрузки;
+    // ссылки в новой вкладке работают как обычная загрузка приложения по адресу.
+    document.addEventListener('click', (event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey ||
+            event.shiftKey || event.altKey) {
+            return;
+        }
+        const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+        if (!anchor) {
+            return;
+        }
+        const url = new URL(anchor.href, window.location.href);
+        if (url.origin !== window.location.origin) {
+            return;
+        }
+        event.preventDefault();
+        history.pushState({}, '', url);
+        renderFromLocation();
+    });
+
+    window.addEventListener('popstate', renderFromLocation);
+
     // ---------- Меню режимов ----------
 
     // Подпись у тумблера показывает текущее состояние, а не действие.
@@ -315,13 +443,11 @@
         startRound();
         showView(trainingView);
     });
-    backToBlocksButton.addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    backToBlocksButton.addEventListener('click', goToBlocks);
     document.addEventListener('keydown', (event) => {
         const target = event.target;
         const onControl = target instanceof HTMLElement && ['BUTTON', 'INPUT', 'A'].includes(target.tagName);
-        if (event.code === 'Space') {
+        if (event.code === 'Space' && !trainingView.hidden) {
             if (onControl) {
                 return;
             }
@@ -333,24 +459,18 @@
     });
 
     (async function init() {
-        if (!Number.isInteger(blockNumber) || blockNumber < 1) {
-            showError('Некорректный номер блока: ' + params.get('block'));
-            return;
-        }
         try {
-            const blocks = await loadBlocks();
-            block = blocks.find((candidate) => candidate.number === blockNumber);
-            if (!block) {
-                showError('Блок ' + blockNumber + ' не найден.');
-                return;
-            }
+            blocks = await loadBlocks();
         } catch (throwable) {
-            showError('Не удалось загрузить слова: ' + throwable.message);
-            return;
+            loadError = throwable.message;
         }
-        blockTitle.textContent = 'Блок ' + block.number;
-        blockRange.textContent = 'слова ' + block.from + '–' + block.to;
-        startRound();
-        showView(trainingView);
+        loading.hidden = true;
+        if (loadError !== null) {
+            errorBox.hidden = false;
+            errorBox.textContent = 'Не удалось загрузить список блоков: ' + loadError;
+        } else {
+            renderBlocksGrid();
+        }
+        renderFromLocation();
     })();
 })();
