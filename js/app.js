@@ -7,13 +7,13 @@
 // в углу сцены, как кнопка «назад», не вращается с карточкой и остаётся
 // на месте при перевороте.
 // Прогресс блоков хранится в localStorage: по каждому блоку — какие слова
-// выучены, какие «учу», очередь раунда (повёрнута так, что вход продолжается
-// с того слова, на котором закончили) и настройки самого блока — порядок
-// карточек и лицевая сторона. Полностью выученный блок открывается сразу на
-// финальном экране. Статусы на главной («в процессе» — янтарная точка,
-// «выучен» — зелёная галочка) выводятся из этого же хранилища; «Очистить
-// прогресс» в настройках главной удаляет всё, «Начать заново» сбрасывает
-// прогресс блока, сохраняя его настройки.
+// выучены, какие «учу», очередь раунда и ответы (вход продолжается с того
+// слова, на котором закончили, линия прогресса и отмены восстанавливаются)
+// и настройки самого блока — порядок карточек и лицевая сторона. Полностью
+// выученный блок открывается сразу на финальном экране. Статусы на главной
+// («в процессе» — янтарная точка, «выучен» — зелёная галочка) выводятся из
+// этого же хранилища; «Очистить прогресс» в настройках главной удаляет всё,
+// «Начать заново» сбрасывает прогресс блока, сохраняя его настройки.
 
 (function () {
     // ---------- Список блоков ----------
@@ -115,11 +115,11 @@
 
     // ---------- Прогресс блоков и их настройки в localStorage ----------
 
-    // По каждому блоку хранятся выученные слова, слова «учу», очередь раунда
-    // (повёрнута текущим словом вперёд — вход продолжает с того места, где
-    // закончили) и настройки этого блока: порядок карточек и лицевая сторона.
-    // Хранилище постоянное; «Очистить прогресс» удаляет всё, «Начать заново»
-    // сбрасывает прогресс блока, сохраняя его настройки.
+    // По каждому блоку хранятся выученные слова, слова «учу», очередь раунда,
+    // ответы раунда (линия прогресса и отмены) и настройки этого блока:
+    // порядок карточек и лицевая сторона. Хранилище постоянное; «Очистить
+    // прогресс» удаляет всё, «Начать заново» сбрасывает прогресс блока,
+    // сохраняя его настройки.
     const PROGRESS_KEY = 'word-progress';
     const blockCards = new Map();
     const blockTotals = new Map();
@@ -159,7 +159,8 @@
                 blockProgress.set(number, {
                     known: value.filter((index) => Number.isInteger(index)),
                     learning: [],
-                    queue: []
+                    queue: [],
+                    answers: []
                 });
                 continue;
             }
@@ -173,6 +174,7 @@
                     ? value.learning.filter((index) => Number.isInteger(index)) : [],
                 queue: Array.isArray(value.queue)
                     ? value.queue.filter((index) => Number.isInteger(index)) : [],
+                answers: Array.isArray(value.answers) ? value.answers : [],
                 shuffle: typeof value.shuffle === 'boolean' ? value.shuffle : undefined,
                 frontRussian: typeof value.frontRussian === 'boolean' ? value.frontRussian : undefined
             });
@@ -208,14 +210,15 @@
         }
     }
 
-    // Снимок состояния блока: очередь поворачивается так, что первым при
-    // восстановлении покажется слово, на котором остановились, а пройденные
-    // в раунде слова уходят в конец (ставшие выученными отфильтруются).
+    // Снимок состояния блока: очередь раунда как есть и ответы раунда — по ним
+    // восстанавливаются линия прогресса, отмены и текущая карточка (позиция
+    // раунда не хранится: она равна числу ответов).
     function snapshotBlockState() {
         return {
             known: [...known],
             learning: [...learning],
-            queue: queue.slice(position).concat(queue.slice(0, position)),
+            queue: [...queue],
+            answers: [...answers],
             shuffle: shuffle,
             frontRussian: frontRussian
         };
@@ -247,6 +250,7 @@
                 known: [],
                 learning: [],
                 queue: [],
+                answers: [],
                 shuffle: shuffle,
                 frontRussian: frontRussian
             });
@@ -365,12 +369,40 @@
         return result;
     }
 
-    // restoredQueue — сохранённая очередь: продолжение раунда в прежнем порядке
-    // со слова, на котором закончили; без неё раунд строится заново.
-    function startRound(restoredQueue) {
-        queue = restoredQueue !== undefined ? restoredQueue : buildQueue();
-        position = 0;
-        answers = [];
+    // Восстановление раунда из записи блока: сохранённые очередь и ответы
+    // продолжают раунд с того же слова и с той же линией прогресса. Раунд
+    // без сохранённой очереди или полностью отвеченный не продолжается.
+    function buildRestoredRound(saved) {
+        if (saved === undefined || !Array.isArray(saved.queue) || saved.queue.length === 0) {
+            return undefined;
+        }
+        const restoredAnswers = [];
+        if (Array.isArray(saved.answers)) {
+            for (const entry of saved.answers) {
+                if (entry === null || typeof entry !== 'object' ||
+                    !Number.isInteger(entry.wordIndex) || typeof entry.isKnown !== 'boolean') {
+                    break;
+                }
+                restoredAnswers.push(entry);
+            }
+        }
+        if (restoredAnswers.length >= saved.queue.length) {
+            return undefined;
+        }
+        return { queue: saved.queue, answers: restoredAnswers };
+    }
+
+    // restoredRound — сохранённые очередь и ответы: линия прогресса, отмены
+    // и текущая карточка продолжаются с того же места; без него раунд новый.
+    function startRound(restoredRound) {
+        if (restoredRound !== undefined) {
+            queue = restoredRound.queue;
+            answers = restoredRound.answers;
+        } else {
+            queue = buildQueue();
+            answers = [];
+        }
+        position = answers.length;
         renderCard();
         renderProgress();
         updatePrevButton();
@@ -514,13 +546,12 @@
     }
 
     // Вход в блок восстанавливает сохранённый прогресс: выученные слова, слова
-    // «учу», очередь раунда (первым покажется слово, на котором закончили) и
-    // настройки именно этого блока; у блока без записи — настройки по умолчанию.
+    // «учу», настройки блока и раунд — очередь, ответы (линия прогресса) и
+    // текущая карточка; у блока без записи — настройки по умолчанию и новый раунд.
     function resetTrainingState() {
         const saved = blockProgress.get(block.number);
         known = new Set(saved === undefined ? [] : saved.known);
         learning = new Set(saved === undefined ? [] : saved.learning);
-        queue = saved === undefined ? [] : saved.queue.filter((index) => !known.has(index));
         shuffle = saved !== undefined && typeof saved.shuffle === 'boolean'
             ? saved.shuffle : initialShuffle;
         frontRussian = saved !== undefined && typeof saved.frontRussian === 'boolean'
@@ -528,10 +559,9 @@
         shuffleToggle.checked = shuffle;
         frontSideToggle.checked = frontRussian;
         refreshModeLabels();
-        position = 0;
-        answers = [];
         round = 1;
         closeModeMenu();
+        return saved;
     }
 
     function openBlock(blockNumber) {
@@ -550,12 +580,12 @@
         document.title = 'Блок ' + blockNumber + ' — обучение';
         blockTitle.textContent = 'Блок ' + block.number;
         blockRange.textContent = 'слова ' + block.from + '–' + block.to;
-        resetTrainingState();
+        const saved = resetTrainingState();
         if (known.size >= block.words.length) {
             // Полностью выученный блок открывается сразу на финальный экран.
             showFinishView();
         } else {
-            startRound(queue.length > 0 ? queue : undefined);
+            startRound(buildRestoredRound(saved));
             showView(trainingView);
         }
     }
