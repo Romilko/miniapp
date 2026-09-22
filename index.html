@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#101318">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>5500 английских слов — блоки</title>
-    <link rel="stylesheet" href="css/styles.css?v=10">
+    <link rel="stylesheet" href="css/styles.css?v=13">
     <script defer src="js/data.js?v=3"></script>
-    <script defer src="js/app.js?v=1"></script>
+    <script defer src="js/app.js?v=5"></script>
 </head>
 <body>
 <div class="container" id="blocks-view">
@@ -55,8 +55,6 @@
             <div class="card" id="card">
                 <div class="card-face card-face--front">
                     <div class="card-face__word" id="card-word"></div>
-                    <button type="button" class="info-button" id="btn-info"
-                            aria-label="Описание слова" title="Описание слова" hidden>i</button>
                 </div>
                 <div class="card-face card-face--back">
                     <div class="card-face__word-small" id="card-back-word"></div>
@@ -65,6 +63,8 @@
             </div>
             <button type="button" class="prev-button" id="btn-prev"
                     aria-label="Предыдущая карточка" title="Предыдущая карточка" disabled>←</button>
+            <button type="button" class="info-button" id="btn-info"
+                    aria-label="Описание слова" title="Описание слова" hidden>i</button>
             <div class="definition-popup" id="definition-popup" hidden></div>
         </div>
 
