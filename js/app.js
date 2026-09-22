@@ -7,13 +7,13 @@
 // в углу сцены, как кнопка «назад», не вращается с карточкой и остаётся
 // на месте при перевороте.
 // Прогресс блоков хранится в localStorage: по каждому блоку — какие слова
-// выучены, какие «учу» и очередь раунда, повёрнутая так, что вход в блок
-// продолжается с того слова, на котором закончили. Полностью выученный блок
-// открывается сразу на финальном экране. Там же живут глобальные настройки
-// (порядок карточек и лицевая сторона). Статусы на главной («в процессе» —
-// янтарная точка, «выучен» — зелёная галочка) выводятся из этого же хранилища;
-// «Очистить прогресс» в настройках главной удаляет прогресс вместе с
-// настройками, «Начать заново» в блоке сбрасывает только прогресс блока.
+// выучены, какие «учу», очередь раунда (повёрнута так, что вход продолжается
+// с того слова, на котором закончили) и настройки самого блока — порядок
+// карточек и лицевая сторона. Полностью выученный блок открывается сразу на
+// финальном экране. Статусы на главной («в процессе» — янтарная точка,
+// «выучен» — зелёная галочка) выводятся из этого же хранилища; «Очистить
+// прогресс» в настройках главной удаляет всё, «Начать заново» сбрасывает
+// прогресс блока, сохраняя его настройки.
 
 (function () {
     // ---------- Список блоков ----------
@@ -72,6 +72,10 @@
     let learning = new Set();
     let shuffle = false;
     let frontRussian = false;
+    // Настройки по умолчанию для блоков без сохранённых собственных:
+    // наследуются из прежнего глобального формата хранилища, иначе — выключены.
+    let initialShuffle = false;
+    let initialFrontRussian = false;
     let round = 1;
     // Ответы раунда с данными для отмены: {wordIndex, isKnown, wasKnown, wasLearning}.
     let answers = [];
@@ -109,13 +113,13 @@
         blocksGrid.appendChild(fragment);
     }
 
-    // ---------- Прогресс блоков и настройки в localStorage ----------
+    // ---------- Прогресс блоков и их настройки в localStorage ----------
 
-    // По каждому блоку хранятся выученные слова, слова «учу» и очередь раунда,
-    // повёрнутая текущим словом вперёд — вход продолжает с того места, где
-    // закончили. Рядом живут глобальные настройки (порядок, лицевая сторона).
-    // Хранилище постоянное; «Очистить прогресс» в настройках главной удаляет
-    // прогресс вместе с настройками, «Начать заново» — только прогресс блока.
+    // По каждому блоку хранятся выученные слова, слова «учу», очередь раунда
+    // (повёрнута текущим словом вперёд — вход продолжает с того места, где
+    // закончили) и настройки этого блока: порядок карточек и лицевая сторона.
+    // Хранилище постоянное; «Очистить прогресс» удаляет всё, «Начать заново»
+    // сбрасывает прогресс блока, сохраняя его настройки.
     const PROGRESS_KEY = 'word-progress';
     const blockCards = new Map();
     const blockTotals = new Map();
@@ -139,8 +143,8 @@
         }
         const settings = parsed.settings;
         if (settings !== null && typeof settings === 'object') {
-            shuffle = settings.shuffle === true;
-            frontRussian = settings.frontRussian === true;
+            initialShuffle = settings.shuffle === true;
+            initialFrontRussian = settings.frontRussian === true;
         }
         // Новый формат — {settings, blocks}; старый — {номер: [выученные индексы]}.
         const blocks = (parsed.blocks !== null && typeof parsed.blocks === 'object')
@@ -168,16 +172,15 @@
                 learning: Array.isArray(value.learning)
                     ? value.learning.filter((index) => Number.isInteger(index)) : [],
                 queue: Array.isArray(value.queue)
-                    ? value.queue.filter((index) => Number.isInteger(index)) : []
+                    ? value.queue.filter((index) => Number.isInteger(index)) : [],
+                shuffle: typeof value.shuffle === 'boolean' ? value.shuffle : undefined,
+                frontRussian: typeof value.frontRussian === 'boolean' ? value.frontRussian : undefined
             });
         }
     }
 
     function saveProgressStorage() {
-        const data = {
-            settings: { shuffle: shuffle, frontRussian: frontRussian },
-            blocks: {}
-        };
+        const data = { blocks: {} };
         for (const [number, state] of blockProgress) {
             data.blocks[number] = state;
         }
@@ -195,8 +198,13 @@
             const total = blockTotals.get(number);
             const knownCount = state === undefined ? 0 : state.known.length;
             const learned = total !== undefined && knownCount >= total;
+            // «В процессе» — любой проходивший блок: в записи есть прогресс
+            // (выученные, «учу» или очередь раунда), даже если выучено ноль;
+            // запись только с настройками (после «Начать заново») не считается.
+            const hasProgress = state !== undefined &&
+                (state.known.length + state.learning.length + state.queue.length) > 0;
             blockCard.classList.toggle('block-card--learned', learned);
-            blockCard.classList.toggle('block-card--doing', knownCount > 0 && !learned);
+            blockCard.classList.toggle('block-card--doing', hasProgress && !learned);
         }
     }
 
@@ -207,7 +215,9 @@
         return {
             known: [...known],
             learning: [...learning],
-            queue: queue.slice(position).concat(queue.slice(0, position))
+            queue: queue.slice(position).concat(queue.slice(0, position)),
+            shuffle: shuffle,
+            frontRussian: frontRussian
         };
     }
 
@@ -231,7 +241,15 @@
             if (!confirmed) {
                 return;
             }
-            blockProgress.delete(block.number);
+            // Настройки блока переживают перезапуск: прогресс сбрасывается,
+            // а настройки остаются в пустой записи блока.
+            blockProgress.set(block.number, {
+                known: [],
+                learning: [],
+                queue: [],
+                shuffle: shuffle,
+                frontRussian: frontRussian
+            });
             saveProgressStorage();
             known = new Set();
             learning = new Set();
@@ -264,12 +282,8 @@
                 return;
             }
             blockProgress.clear();
-            // Сброс прогресса обнуляет и настройки — до дефолтных значений.
-            shuffle = false;
-            frontRussian = false;
-            shuffleToggle.checked = false;
-            frontSideToggle.checked = false;
-            refreshModeLabels();
+            initialShuffle = false;
+            initialFrontRussian = false;
             try {
                 localStorage.removeItem(PROGRESS_KEY);
             } catch (throwable) {
@@ -500,13 +514,20 @@
     }
 
     // Вход в блок восстанавливает сохранённый прогресс: выученные слова, слова
-    // «учу» и очередь раунда (первым покажется слово, на котором закончили).
-    // Настройки не сбрасываются — они глобальные и хранятся в том же хранилище.
+    // «учу», очередь раунда (первым покажется слово, на котором закончили) и
+    // настройки именно этого блока; у блока без записи — настройки по умолчанию.
     function resetTrainingState() {
         const saved = blockProgress.get(block.number);
         known = new Set(saved === undefined ? [] : saved.known);
         learning = new Set(saved === undefined ? [] : saved.learning);
         queue = saved === undefined ? [] : saved.queue.filter((index) => !known.has(index));
+        shuffle = saved !== undefined && typeof saved.shuffle === 'boolean'
+            ? saved.shuffle : initialShuffle;
+        frontRussian = saved !== undefined && typeof saved.frontRussian === 'boolean'
+            ? saved.frontRussian : initialFrontRussian;
+        shuffleToggle.checked = shuffle;
+        frontSideToggle.checked = frontRussian;
+        refreshModeLabels();
         position = 0;
         answers = [];
         round = 1;
@@ -750,9 +771,6 @@
             errorBox.textContent = 'Не удалось загрузить список блоков: ' + loadError;
         } else {
             loadProgressStorage();
-            shuffleToggle.checked = shuffle;
-            frontSideToggle.checked = frontRussian;
-            refreshModeLabels();
             renderBlocksGrid();
             refreshBlockCards();
         }
