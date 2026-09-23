@@ -789,6 +789,10 @@
         }
     });
 
+    // Пустой обработчик: на iOS Safari без слушателя touchstart у предка
+    // не срабатывает :active — кнопки не дают отклика при нажатии пальцем.
+    document.body.addEventListener('touchstart', () => {}, { passive: true });
+
     (async function init() {
         try {
             blocks = await loadBlocks();

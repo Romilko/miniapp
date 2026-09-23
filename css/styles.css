@@ -20,6 +20,8 @@
 
 html {
     -webkit-text-size-adjust: 100%;
+    /* Наследуется: убирает серую системную вспышку при тапе на WebKit/Blink. */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -92,11 +94,25 @@ a {
     transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
-.block-card:hover,
 .block-card:focus-visible {
     border-color: var(--accent);
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Отклик на нажатие пальцем: виден, пока палец прижат, и гаснет при отпускании. */
+.block-card:active {
+    border-color: var(--accent);
+}
+
+/* Ховер — только для устройств с настоящим курсором: на тач-устройствах
+   эмулируемый :hover «залипает» после тапа до касания другого места. */
+@media (hover: hover) {
+    .block-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
 }
 
 .block-card__title {
@@ -176,16 +192,23 @@ a {
     transition: border-color 0.15s, background 0.15s;
 }
 
-.danger-button:hover,
 .danger-button:focus-visible {
     border-color: var(--red);
     background: rgba(229, 72, 77, 0.12);
-    outline: none;
-}
-
-.danger-button:focus-visible {
     outline: 2px solid var(--red);
     outline-offset: 2px;
+}
+
+.danger-button:active {
+    border-color: var(--red);
+    background: rgba(229, 72, 77, 0.12);
+}
+
+@media (hover: hover) {
+    .danger-button:hover {
+        border-color: var(--red);
+        background: rgba(229, 72, 77, 0.12);
+    }
 }
 
 .loading,
@@ -240,8 +263,14 @@ a {
     text-decoration: none;
 }
 
-.back-link:hover {
+.back-link:active {
     color: var(--accent);
+}
+
+@media (hover: hover) {
+    .back-link:hover {
+        color: var(--accent);
+    }
 }
 
 .block-heading {
@@ -275,10 +304,21 @@ a {
     transition: border-color 0.15s, color 0.15s;
 }
 
-.mode-menu__button:hover,
 .mode-menu__button[aria-expanded="true"] {
     border-color: var(--accent);
     color: var(--text);
+}
+
+.mode-menu__button:active {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+@media (hover: hover) {
+    .mode-menu__button:hover {
+        border-color: var(--accent);
+        color: var(--text);
+    }
 }
 
 .mode-menu__button:focus-visible {
@@ -493,15 +533,23 @@ a {
     transition: border-color 0.15s, color 0.15s;
 }
 
-.prev-button:hover:not(:disabled),
 .prev-button:focus-visible {
+    border-color: var(--accent);
+    color: var(--text);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.prev-button:active:not(:disabled) {
     border-color: var(--accent);
     color: var(--text);
 }
 
-.prev-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+@media (hover: hover) {
+    .prev-button:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--text);
+    }
 }
 
 .prev-button:disabled {
@@ -531,15 +579,23 @@ a {
     transition: border-color 0.15s, color 0.15s;
 }
 
-.info-button:hover,
 .info-button:focus-visible {
+    border-color: var(--accent);
+    color: var(--text);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.info-button:active {
     border-color: var(--accent);
     color: var(--text);
 }
 
-.info-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+@media (hover: hover) {
+    .info-button:hover {
+        border-color: var(--accent);
+        color: var(--text);
+    }
 }
 
 /* Окошко английского описания; лежит в сцене рядом с карточкой,
@@ -578,8 +634,14 @@ a {
     transition: background 0.15s, transform 0.1s;
 }
 
-.answer-button:hover {
+.answer-button:active {
     transform: translateY(-1px);
+}
+
+@media (hover: hover) {
+    .answer-button:hover {
+        transform: translateY(-1px);
+    }
 }
 
 .answer-button:focus-visible {
@@ -591,16 +653,28 @@ a {
     background: var(--red);
 }
 
-.answer-button--learn:hover {
+.answer-button--learn:active {
     background: var(--red-hover);
+}
+
+@media (hover: hover) {
+    .answer-button--learn:hover {
+        background: var(--red-hover);
+    }
 }
 
 .answer-button--know {
     background: var(--green);
 }
 
-.answer-button--know:hover {
+.answer-button--know:active {
     background: var(--green-hover);
+}
+
+@media (hover: hover) {
+    .answer-button--know:hover {
+        background: var(--green-hover);
+    }
 }
 
 /* ---------- Межэкраны (конец раунда, блок выучен, ошибка) ---------- */
@@ -653,8 +727,14 @@ a {
     transition: background 0.15s;
 }
 
-.primary-button:hover {
+.primary-button:active {
     background: #4a7ce8;
+}
+
+@media (hover: hover) {
+    .primary-button:hover {
+        background: #4a7ce8;
+    }
 }
 
 .secondary-button {
@@ -669,8 +749,14 @@ a {
     transition: border-color 0.15s;
 }
 
-.secondary-button:hover {
+.secondary-button:active {
     border-color: var(--accent);
+}
+
+@media (hover: hover) {
+    .secondary-button:hover {
+        border-color: var(--accent);
+    }
 }
 
 /* ---------- Диалог подтверждения ---------- */
@@ -739,8 +825,14 @@ a {
     transition: background 0.15s;
 }
 
-.danger-solid-button:hover {
+.danger-solid-button:active {
     background: var(--red-hover);
+}
+
+@media (hover: hover) {
+    .danger-solid-button:hover {
+        background: var(--red-hover);
+    }
 }
 
 .danger-solid-button:focus-visible {
