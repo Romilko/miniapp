@@ -417,7 +417,7 @@
         cardBackWord.textContent = frontText;
         cardTranslation.textContent = backText;
         definitionPopup.textContent = wordEntry.definition;
-        definitionPopup.hidden = true;
+        setDefinitionOpen(false);
         infoButton.hidden = !wordEntry.definition;
         // Следующая карточка показывается сразу лицевой стороной — без анимации возврата.
         if (card.classList.contains('card--flipped')) {
@@ -681,7 +681,7 @@
         }
         if (!definitionPopup.hidden &&
             !definitionPopup.contains(event.target) && !infoButton.contains(event.target)) {
-            definitionPopup.hidden = true;
+            setDefinitionOpen(false);
         }
     });
     document.addEventListener('keydown', (event) => {
@@ -697,7 +697,7 @@
                 closeSettingsMenu();
             }
             if (!definitionPopup.hidden) {
-                definitionPopup.hidden = true;
+                setDefinitionOpen(false);
             }
         }
     });
@@ -719,10 +719,17 @@
 
     prevButton.addEventListener('click', goBack);
 
+    // Окно описания и кнопка ⓘ меняют состояние вместе: кнопка подсвечена,
+    // пока окно открыто (стиль по aria-expanded).
+    function setDefinitionOpen(open) {
+        definitionPopup.hidden = !open;
+        infoButton.setAttribute('aria-expanded', String(open));
+    }
+
     // Окошко английского описания: открывается и закрывается кликом по ⓘ.
     infoButton.addEventListener('click', (event) => {
         event.stopPropagation();
-        definitionPopup.hidden = !definitionPopup.hidden;
+        setDefinitionOpen(definitionPopup.hidden);
     });
 
     // Свайп вправо по карточке — назад; отличаем его от клика-переворота.
